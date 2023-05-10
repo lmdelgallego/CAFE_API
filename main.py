@@ -50,13 +50,13 @@ def get_random_cafe():
     print(random_id)
     # cafes = db.session.query(Cafe).all()
     random_cafe = Cafe.query.get(random_id)
-    return jsonify(cafe=random_cafe.to_dict())
+    return jsonify(cafe=random_cafe.to_dict()), 200
 
 
 @app.route("/all")
 def get_all_cafes():
     all_cafes = db.session.query(Cafe).all()
-    return jsonify(cafes=[cafe.to_dict() for cafe in all_cafes])
+    return jsonify(cafes=[cafe.to_dict() for cafe in all_cafes]), 200
 
 
 @app.route("/search")
@@ -64,14 +64,13 @@ def search_cafe():
     query_location = request.args.get("loc")
     cafe_list = Cafe.query.filter_by(location=query_location).all()
     if cafe_list:
-        return jsonify(cafes=[cafe.to_dict() for cafe in cafe_list])
+        return jsonify(cafes=[cafe.to_dict() for cafe in cafe_list]), 200
     else:
         return jsonify(
             error={
-                "Not Found": "Sorry, we don't have a cafe at that location.",
-                "code": 404,
+                "Not Found": "Sorry, we don't have a cafe at that location."
             }
-        )
+        ), 404
     pass
 
 
@@ -93,10 +92,49 @@ def add_cafe():
     )
     db.session.add(new_cafe)
     db.session.commit()
-    return jsonify(response={"success": "Successfully added the new cafe."})
+    return jsonify(response={"success": "Successfully added the new cafe."}), 200
 
 
 ## HTTP PUT/PATCH - Update Record
+@app.route("/update/<int:id>", methods=["PUT"])
+def update_cafe(id):
+    cafe = Cafe.query.get(id)
+    if cafe:
+        cafe_data = request.form.to_dict()
+        cafe.name = cafe_data["name"]
+        cafe.map_url = cafe_data["map_url"]
+        cafe.img_url = cafe_data["img_url"]
+        cafe.location = cafe_data["location"]
+        cafe.seats = cafe_data["seats"]
+        cafe.has_toilet = bool(cafe_data["has_toilet"])
+        cafe.has_wifi = bool(cafe_data["has_wifi"])
+        cafe.has_sockets = bool(cafe_data["has_sockets"])
+        cafe.can_take_calls = bool(cafe_data["can_take_calls"])
+        cafe.coffee_price = cafe_data["coffee_price"]
+        db.session.commit()
+        return jsonify(response={"success": "Successfully updated the cafe."})
+    else:
+        return jsonify(
+            error={
+                "Not Found": "Sorry a cafe with that id was not found in the database."
+            }
+        ), 400
+
+
+@app.route("/update-price/<int:cafe_id>", methods=["PATCH"])
+def update_price(cafe_id):
+    cafe = Cafe.query.get(cafe_id)
+    if cafe:
+        cafe.coffee_price = request.args.get("new_price")
+        db.session.commit()
+        return jsonify(response={"success": "Successfully updated the cafe price."}), 200
+    else:
+        return jsonify(
+            error={
+                "Not Found": "Sorry a cafe with that id was not found in the database."
+            }
+        ), 404
+
 
 ## HTTP DELETE - Delete Record
 
